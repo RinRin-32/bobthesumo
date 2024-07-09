@@ -85,8 +85,22 @@ def move_backward():
 try:
     set_speed(100,100)
     while(1):
+        time.sleep(.5)
         dist = distance()
         print(dist)
+        if not GPIO.input(l):
+            turn_right()
+            print('turning right')
+        elif not GPIO.input(r):
+            turn_left()
+            print('turning left')
+        elif dist <= 30:
+            move_forward()
+            print('found enemy')
+        else:
+            turn_left()
+            print('spin')
+        '''
         if GPIO.input(l) and GPIO.input(c) and GPIO.input(r):
             GPIO.output([in1,in2,in3,in4],GPIO.LOW)
             print("ended")
@@ -103,6 +117,7 @@ try:
             set_speed(100,0)
             turn_left()
         #sleep(.1)
+        '''
     GPIO.cleanup()
 except KeyboardInterrupt:
     GPIO.output([in1,in2,in3,in4],GPIO.LOW)
