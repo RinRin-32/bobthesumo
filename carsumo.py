@@ -75,16 +75,24 @@ try:
         time.sleep(.5)
         dist = distance()
         print(dist)
-        if not GPIO.input(l):
+        if not GPIO.input(l) and not GPIO.input(c) and not GPIO.input(r):
+            set_speed(40,40)
+            move_forward()
+            print('moving away from rim')
+        elif not GPIO.input(l):
+            set_speed(40,40)
             turn_right()
             print('turning right')
         elif not GPIO.input(r):
+            set_speed(40,40)
             turn_left()
             print('turning left')
         elif dist <= 30:
+            set_speed(80,80)
             move_forward()
             print('found enemy')
         else:
+            set_speed(100,100)
             turn_left()
             print('spin')
     GPIO.cleanup()
