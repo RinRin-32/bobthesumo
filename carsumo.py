@@ -1,10 +1,16 @@
 import RPi.GPIO as GPIO
-from time import sleep
-from gpiozero import DistanceSensor
-ultrasonic = DistanceSensor(echo=17,trigger=3)
+import time
+GPIO.setmode(GPIO.BCM)
+#from gpiozero import DistanceSensor
+#packages doesn't work well with RPi.GPIO
+
+#ultrasonic = DistanceSensor(echo=17,trigger=3)
 #ultrasonic.distance for distance
 #to do, change the ir to be used for edge detection, 3 points detect white = walk straight
 
+
+GPIO_ECHO = 17
+GPIO_TRIGGER = 3
 
 in1 = 23
 in2 = 24
@@ -18,37 +24,44 @@ l = 4
 c = 14
 r = 15
 
-status = [1,1,1]
 
-
-
-GPIO.setmode(GPIO.BCM)
 GPIO.setup([in1,in2,en,in3,in4,enb],GPIO.OUT)
 GPIO.setup([l,c,r],GPIO.IN, pull_up_down = GPIO.PUD_UP)
+GPIO.setup(GPIO_ECHO, GPIO.IN)
+GPIO.setup(GPIO_TRIGGER, GPIO.OUT)
 GPIO.output([in1,in2,in3,in4],GPIO.LOW)
 p=GPIO.PWM(en,1000)
 g=GPIO.PWM(enb, 1000)
 p.start(100)
 g.start(100)
 
-def set_stat(index):
-    status[index] = 0
-def reset_stat(index):
-    status[index] = 1
+def distance():
+    # set Trigger to HIGH
+    GPIO.output(GPIO_TRIGGER, True)
+ 
+    # set Trigger after 0.01ms to LOW
+    time.sleep(0.00001)
+    GPIO.output(GPIO_TRIGGER, False)
+ 
+    StartTime = time.time()
+    StopTime = time.time()
+ 
+    # save StartTime
+    while GPIO.input(GPIO_ECHO) == 0:
+        StartTime = time.time()
+ 
+    # save time of arrival
+    while GPIO.input(GPIO_ECHO) == 1:
+        StopTime = time.time()
+ 
+    # time difference between start and arrival
+    TimeElapsed = StopTime - StartTime
+    # multiply with the sonic speed (34300 cm/s)
+    # and divide by 2, because there and back
+    distance = (TimeElapsed * 34300) / 2
+ 
+    return distance
 
-def button_pressed_R(channel):
-    set_stat(2)
-
-def button_pressed_L(channel):
-    set_stat(0)
-
-def button_pressed_C(channel):
-    set_stat(1)
-
-def update_status():
-    status[0]= 1- GPIO.input(l)
-    status[1]= 1- GPIO.input(c)
-    status[2]= 1- GPIO.input(r)
 
 def set_speed(left, right):
     p.ChangeDutyCycle(left)
@@ -68,28 +81,18 @@ def turn_right():
 def move_backward():
     GPIO.output([in1,in3],GPIO.HIGH)
     GPIO.output([in2,in4],GPIO.LOW)
-def checkstat():
-    if not all(status):
-        GPIO.output([in1,in2,in3,in4], GPIO.LOW)
-        return True
-    return False
 
-GPIO.add_event_detect(l, GPIO.FALLING, callback=button_pressed_L, bouncetime = 100)
-GPIO.add_event_detect(r, GPIO.FALLING, callback=button_pressed_R, bouncetime = 100)
-GPIO.add_event_detect(c, GPIO.FALLING, callback=button_pressed_C, bouncetime = 100)
 try:
     set_speed(100,100)
-    #sleep(2)
     while(1):
-        update_status()
-        print(status)
+        dist = distance()
+        print(dist)
         if GPIO.input(l) and GPIO.input(c) and GPIO.input(r):
             GPIO.output([in1,in2,in3,in4],GPIO.LOW)
             print("ended")
             break
         elif GPIO.input(c):
             print("center")
-            set_speed(70,70)
             move_forward()
         elif GPIO.input(r):
             print("right")
